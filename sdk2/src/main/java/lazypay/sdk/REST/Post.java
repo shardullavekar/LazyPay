@@ -22,7 +22,7 @@ public class Post {
 
     OkHttpClient client = new OkHttpClient();
 
-    String postdata(String url, String json, String accessKey, String signature) throws IOException {
+    public String postdata(String url, String json, String accessKey, String signature) throws IOException {
         RequestBody body = RequestBody.create(JSON, json);
         Request.Builder builder = new Request.Builder();
         builder.url(url);

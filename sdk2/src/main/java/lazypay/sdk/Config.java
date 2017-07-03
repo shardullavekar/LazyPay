@@ -7,4 +7,5 @@ package lazypay.sdk;
 public class Config {
     public static final String TEST = "https://sboxapi.lazypay.in/";
     public static final String PROD = "https://api.lazypay.in/";
+    public static final String ACCESS_KEY_NAME = "in.sdk.lazypay";
 }
