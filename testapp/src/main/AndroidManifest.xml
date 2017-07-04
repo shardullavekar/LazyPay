@@ -11,6 +11,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <meta-data android:name="in.sdk.lazypay"
+                   android:value="M9OZT7LFHPCK91UDVJC8"/>
+
     </application>
 
 </manifest>

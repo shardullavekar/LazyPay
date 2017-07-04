@@ -21,19 +21,20 @@ public class Eligibility {
     public Eligibility() {
     }
 
-    public void check(Callback callback, JSONObject jsonObject, String accessKey) {
-        EligibilityAsynch asynch = new EligibilityAsynch(callback, jsonObject, accessKey);
+    public void check(Callback callback, JSONObject jsonObject, String accessKey, String signature) {
+        EligibilityAsynch asynch = new EligibilityAsynch(callback, jsonObject, accessKey, signature);
         asynch.execute();
     }
 
     private class EligibilityAsynch extends AsyncTask<Void, Void, String> {
         Callback callback;
         JSONObject jsonObject;
-        String accessKey;
-        public EligibilityAsynch(Callback callback, JSONObject jsonObject, String accessKey) {
+        String accessKey, signature;
+        public EligibilityAsynch(Callback callback, JSONObject jsonObject, String accessKey, String signature) {
             this.callback = callback;
             this.jsonObject = jsonObject;
             this.accessKey = accessKey;
+            this.signature = signature;
         }
 
         @Override
@@ -41,7 +42,7 @@ public class Eligibility {
             String response = null;
             Post checkPost = new Post();
             try {
-                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, "");
+                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, signature);
             } catch (IOException e) {
                 e.printStackTrace();
                 JSONObject error = new JSONObject();

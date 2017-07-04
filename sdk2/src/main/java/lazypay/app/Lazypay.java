@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -68,10 +67,6 @@ public class Lazypay extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        checkEligibility();
-
-        initStaticjsons();
-
         userDetails = new JSONObject();
 
         try {
@@ -81,6 +76,10 @@ public class Lazypay extends AppCompatActivity {
             e.printStackTrace();
         }
 
+        initStaticjsons();
+
+        checkEligibility();
+
         setContentView(R.layout.activity_lazypay);
     }
 
@@ -89,23 +88,26 @@ public class Lazypay extends AppCompatActivity {
 
         JSONObject jsonObject = getEligibilityJson();
 
-        Log.d("BiggerJson", jsonObject.toString());
+        Signature signature = new Signature();
 
-//        eligibility.check(new Callback() {
-//            @Override
-//            public void onResponse(String response) {
-//                JSONObject jsonResponse = null;
-//                try {
-//                    jsonResponse = new JSONObject(response);
-//                    boolean txnEligibility = jsonResponse.getBoolean("txnEligibility");
-//                    boolean userEligibility = jsonResponse.getBoolean("userEligibility");
-//                    String code = jsonResponse.getString("code");
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        }, jsonObject, accessKey);
+        eligibility.check(new Callback() {
+            @Override
+            public void onResponse(String response) {
+                JSONObject jsonResponse = null;
+                try {
+                    jsonResponse = new JSONObject(response);
+                    boolean txnEligibility = jsonResponse.getBoolean("txnEligibility");
+                    boolean userEligibility = jsonResponse.getBoolean("userEligibility");
+                    String code = jsonResponse.getString("code");
+
+                    processEligibility(txnEligibility, userEligibility, code);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }, jsonObject, accessKey, signature.eligibilitySign(email, mobile, amountstr));
     }
 
     private void processEligibility(boolean txn, boolean user, String code) {
@@ -207,6 +209,7 @@ public class Lazypay extends AppCompatActivity {
         JSONObject productone = new JSONObject();
         try {
             productone.put("productId", "prod4");
+            productone.put("description", "description");
             productone.put("attributes",attributes);
             productone.put("imageUrl","www.google.com");
             productone.put("shippable",true);
