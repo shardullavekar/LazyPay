@@ -5,11 +5,15 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.UUID;
 
 import lazypay.app.API.Eligibility;
 import lazypay.app.API.Initiate;
@@ -24,6 +28,8 @@ public class Lazypay extends AppCompatActivity {
     JSONObject address, userDetails, amount;
 
     JSONArray productDetails;
+
+    WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +87,12 @@ public class Lazypay extends AppCompatActivity {
         checkEligibility();
 
         setContentView(R.layout.activity_lazypay);
+
+        webView = (WebView) this.findViewById(R.id.lazypaywebview);
+
+        webView.setWebChromeClient(new WebChromeClient());
+
+        webView.getSettings().setJavaScriptEnabled(true);
     }
 
     private void checkEligibility() {
@@ -129,7 +141,11 @@ public class Lazypay extends AppCompatActivity {
     private void initPay() {
         Initiate initiatePay = new Initiate();
 
-        JSONObject jsonObject = new JSONObject();
+        String merchanttxnId = UUID.randomUUID().toString();
+
+        JSONObject jsonObject = getInitPayJson(merchanttxnId);
+
+        Signature signature = new Signature();
 
         initiatePay.init(new Callback() {
             @Override
@@ -139,12 +155,12 @@ public class Lazypay extends AppCompatActivity {
                     jsonResponse = new JSONObject(response);
                     String code = jsonResponse.getJSONArray("paymentModes").toString();
 
-                    if (TextUtils.equals(code, "CREDIT_CARD")) {
+                    if (code.contains("CREDIT_CARD")) {
                         String weburl = jsonResponse.getString("checkoutPageUrl");
                         processCheckout(weburl);
                     }
 
-                    if (TextUtils.equals(code, "OTP,AUTO_DEBIT")) {
+                    if (code.contains("OTP") || code.contains("AUTO_DEBIT")) {
 
                     }
 
@@ -152,11 +168,11 @@ public class Lazypay extends AppCompatActivity {
                     e.printStackTrace();
                 }
             }
-        }, jsonObject, accessKey);
+        }, jsonObject, accessKey, signature.initPaysign(accessKey, merchanttxnId, amountstr));
     }
 
     private void processCheckout(String url) {
-
+        webView.loadUrl(url);
     }
 
     private JSONObject getEligibilityJson() {
@@ -169,6 +185,26 @@ public class Lazypay extends AppCompatActivity {
             jsonObject.put("address", address);
             jsonObject.put("productSkuDetails", productDetails);
 
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonObject;
+    }
+
+    private JSONObject getInitPayJson(String merchanttxnId) {
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            jsonObject.put("userDetails", userDetails);
+            jsonObject.put("amount", amount);
+            jsonObject.put("address", address);
+            jsonObject.put("source", R.string.app_name);
+            jsonObject.put("productSkuDetails", productDetails);
+            jsonObject.put("isRedirectFlow", false);
+            jsonObject.put("returnUrl", "https:test");
+            jsonObject.put("notifyUrl", "https:test");
+
+            jsonObject.put("merchantTxnId", merchanttxnId);
         } catch (JSONException e) {
             e.printStackTrace();
         }

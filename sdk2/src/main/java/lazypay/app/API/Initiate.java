@@ -22,19 +22,20 @@ public class Initiate {
 
     }
 
-    public void init(Callback callback, JSONObject jsonObject, String accessKey) {
-        InitiateAsynch initiateAsynch = new InitiateAsynch(callback, jsonObject, accessKey);
+    public void init(Callback callback, JSONObject jsonObject, String accessKey, String signature) {
+        InitiateAsynch initiateAsynch = new InitiateAsynch(callback, jsonObject, accessKey, signature);
         initiateAsynch.execute();
     }
 
     private class InitiateAsynch extends AsyncTask<Void, Void, String> {
         Callback callback;
         JSONObject jsonObject;
-        String accessKey;
-        public InitiateAsynch(Callback callback, JSONObject jsonObject, String accessKey) {
+        String accessKey, signature;
+        public InitiateAsynch(Callback callback, JSONObject jsonObject, String accessKey, String signature) {
             this.callback = callback;
             this.jsonObject = jsonObject;
             this.accessKey = accessKey;
+            this.signature = signature;
         }
 
         @Override
@@ -42,7 +43,7 @@ public class Initiate {
             String response = null;
             Post checkPost = new Post();
             try {
-                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, "");
+                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, signature);
             } catch (IOException e) {
                 e.printStackTrace();
                 JSONObject error = new JSONObject();

@@ -17,7 +17,7 @@ public class Signature {
     public String eligibilitySign(String email, String mobile, String amount) {
         String hashbefore = mobile+email+amount + "INR";
         try {
-            return Config.sha1(hashbefore);
+            return Config.hmacSha1(hashbefore);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             return "";
@@ -28,6 +28,24 @@ public class Signature {
             e.printStackTrace();
             return "";
         }
+    }
+
+    public String initPaysign(String accessKey, String txnId, String amount) {
+        String hashbefore = "merchantAccessKey=" + accessKey + "&" + "transactionId=" + txnId + "&"
+                + "amount=" + amount;
+        try {
+            return Config.hmacSha1(hashbefore);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "";
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+            return "";
+        }
+
     }
 
 

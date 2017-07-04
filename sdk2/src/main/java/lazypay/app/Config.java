@@ -1,7 +1,5 @@
 package lazypay.app;
 
-import android.util.Base64;
-
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -21,16 +19,27 @@ public class Config {
     private static final String SECRET_KEY = "becec050531547703395a6f2c43c7cf7e34bb74f";
 
 
-    public static String sha1(String s) throws
-            UnsupportedEncodingException, NoSuchAlgorithmException,
+    public static String hmacSha1(String value)
+            throws UnsupportedEncodingException, NoSuchAlgorithmException,
             InvalidKeyException {
+        String type = "HmacSHA1";
+        SecretKeySpec secret = new SecretKeySpec(SECRET_KEY.getBytes(), type);
+        Mac mac = Mac.getInstance(type);
+        mac.init(secret);
+        byte[] bytes = mac.doFinal(value.getBytes());
+        return bytesToHex(bytes);
+    }
 
-        SecretKeySpec key = new SecretKeySpec((SECRET_KEY).getBytes("UTF-8"), "HmacSHA1");
-        Mac mac = Mac.getInstance("HmacSHA1");
-        mac.init(key);
+    private final static char[] hexArray = "0123456789abcdef".toCharArray();
 
-        byte[] bytes = mac.doFinal(s.getBytes("UTF-8"));
-
-        return Base64.encodeToString(bytes, Base64.NO_WRAP);
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        int v;
+        for (int j = 0; j < bytes.length; j++) {
+            v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }

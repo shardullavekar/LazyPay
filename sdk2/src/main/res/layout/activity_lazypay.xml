@@ -5,4 +5,10 @@
     android:layout_height="match_parent"
     tools:context="lazypay.app.Lazypay">
 
+    <WebView
+        android:id="@+id/lazypaywebview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true"></WebView>
+
 </RelativeLayout>
