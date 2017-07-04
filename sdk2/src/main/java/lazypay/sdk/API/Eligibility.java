@@ -1,10 +1,6 @@
 package lazypay.sdk.API;
 
-import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.AsyncTask;
-import android.os.Bundle;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,37 +18,22 @@ import lazypay.sdk.REST.Post;
 public class Eligibility {
     private static final String url = "api/lazypay/v0/payment/eligibility";
 
-    Context context;
-
-    ApplicationInfo app;
-
-    Bundle bundle;
-
-    Callback callback;
-
-    public Eligibility(Context context) {
-        this.context = context;
-        app = null;
-        try {
-            app = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
-        } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
-        }
-        bundle = app.metaData;
-
+    public Eligibility() {
     }
 
-    public void check(Callback callback, JSONObject jsonObject) {
-        EligibilityAsynch asynch = new EligibilityAsynch(callback, jsonObject);
+    public void check(Callback callback, JSONObject jsonObject, String accessKey) {
+        EligibilityAsynch asynch = new EligibilityAsynch(callback, jsonObject, accessKey);
         asynch.execute();
     }
 
     private class EligibilityAsynch extends AsyncTask<Void, Void, String> {
         Callback callback;
         JSONObject jsonObject;
-        public EligibilityAsynch(Callback callback, JSONObject jsonObject) {
+        String accessKey;
+        public EligibilityAsynch(Callback callback, JSONObject jsonObject, String accessKey) {
             this.callback = callback;
             this.jsonObject = jsonObject;
+            this.accessKey = accessKey;
         }
 
         @Override
@@ -60,7 +41,7 @@ public class Eligibility {
             String response = null;
             Post checkPost = new Post();
             try {
-                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), bundle.getString(Config.ACCESS_KEY_NAME), "");
+                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, "");
             } catch (IOException e) {
                 e.printStackTrace();
                 JSONObject error = new JSONObject();
