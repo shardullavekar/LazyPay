@@ -15,8 +15,10 @@ import org.json.JSONObject;
 
 import java.util.UUID;
 
+import lazypay.app.API.AutoDebit;
 import lazypay.app.API.Eligibility;
 import lazypay.app.API.Initiate;
+import lazypay.app.storage.Oauth;
 
 public class Lazypay extends AppCompatActivity {
     ApplicationInfo app;
@@ -141,7 +143,7 @@ public class Lazypay extends AppCompatActivity {
     private void initPay() {
         Initiate initiatePay = new Initiate();
 
-        String merchanttxnId = UUID.randomUUID().toString();
+        final String merchanttxnId = UUID.randomUUID().toString();
 
         JSONObject jsonObject = getInitPayJson(merchanttxnId);
 
@@ -161,6 +163,16 @@ public class Lazypay extends AppCompatActivity {
                     }
 
                     if (code.contains("OTP") || code.contains("AUTO_DEBIT")) {
+                        Oauth oauth = new Oauth(getApplicationContext());
+
+                        String token = oauth.getToken();
+
+                        if (!TextUtils.isEmpty(token)) {
+                              processAutoDebit(token, merchanttxnId);
+                        }
+                        else {
+
+                        }
 
                     }
 
@@ -173,6 +185,33 @@ public class Lazypay extends AppCompatActivity {
 
     private void processCheckout(String url) {
         webView.loadUrl(url);
+    }
+
+    private void processOTP(String txnRefnum) {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("paymentMode", "OTP");
+            jsonObject.put("txnRefNo", txnRefnum);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processAutoDebit(String token, String merchantTxnid) {
+
+        JSONObject jsonObject = getAutoDebitJson();
+
+        Signature signature = new Signature();
+
+        AutoDebit autoDebit = new AutoDebit();
+
+        autoDebit.start(new Callback() {
+            @Override
+            public void onResponse(String response) {
+
+            }
+        }, jsonObject, accessKey, signature.autoDebitsign(accessKey, merchantTxnid, amountstr), token);
+
     }
 
     private JSONObject getEligibilityJson() {
@@ -203,7 +242,6 @@ public class Lazypay extends AppCompatActivity {
             jsonObject.put("isRedirectFlow", false);
             jsonObject.put("returnUrl", "https:test");
             jsonObject.put("notifyUrl", "https:test");
-
             jsonObject.put("merchantTxnId", merchanttxnId);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -256,5 +294,25 @@ public class Lazypay extends AppCompatActivity {
 
         productDetails.put(productone);
 
+    }
+
+    private JSONObject getAutoDebitJson() {
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            jsonObject.put("userDetails", userDetails);
+            jsonObject.put("amount", amount);
+            jsonObject.put("address", address);
+            jsonObject.put("source", R.string.app_name);
+            jsonObject.put("productSkuDetails", productDetails);
+            jsonObject.put("redirectFlow", true);
+            jsonObject.put("returnUrl", "https://test");
+            jsonObject.put("notifyUrl", "https://test");
+            jsonObject.put("paymentMode", "AUTO_DEBIT");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return jsonObject;
     }
 }

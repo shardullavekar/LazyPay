@@ -48,6 +48,10 @@ public class Signature {
 
     }
 
+    public String autoDebitsign(String accessKey, String txnId, String amount) {
+        return initPaysign(accessKey, txnId, amount);
+    }
+
 
 
 }
