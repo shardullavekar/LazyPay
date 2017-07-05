@@ -27,6 +27,11 @@ import lazypay.app.SMS.SMSListener;
 import lazypay.app.storage.Oauth;
 
 public class Lazypay extends AppCompatActivity {
+
+    public static final int LAZYPAY_SUCCESS = 10;
+
+    public static final int LAZYPAY_FAILED = 20;
+
     ApplicationInfo app;
 
     Bundle bundle;
@@ -373,7 +378,8 @@ public class Lazypay extends AppCompatActivity {
     }
 
     private void endActivity(int resultCode) {
-
+        setResult(resultCode);
+        Lazypay.this.finish();
     }
 
 }

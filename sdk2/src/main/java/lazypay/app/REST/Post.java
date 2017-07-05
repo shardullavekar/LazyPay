@@ -43,9 +43,6 @@ public class Post {
         RequestBody body = RequestBody.create(JSON, json);
         Request.Builder builder = new Request.Builder();
         builder.url(url);
-        if (!TextUtils.isEmpty(accessKey)) {
-            builder.addHeader(ACCESS_KEY, accessKey);
-        }
         if (!TextUtils.isEmpty(signature)) {
             builder.addHeader(SIGNATURE, signature);
         }

@@ -44,7 +44,7 @@ public class AutoDebit {
             String response = null;
             Post checkPost = new Post();
             try {
-                response = checkPost.postdata(Config.TEST + url, jsonObject.toString(), accessKey, signature);
+                response = checkPost.postdatawithAuth(Config.TEST + url, jsonObject.toString(), accessKey, signature, token);
             } catch (IOException e) {
                 e.printStackTrace();
                 JSONObject error = new JSONObject();
