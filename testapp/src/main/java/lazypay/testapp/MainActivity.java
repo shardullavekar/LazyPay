@@ -27,20 +27,20 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                callLazyPay();
+                callLazyPay(email.getText().toString(), mobile.getText().toString(), "1.00");
             }
         });
 
     }
 
-    private void callLazyPay() {
+    private void callLazyPay(String email, String mobile, String amount) {
         Intent intent = new Intent(MainActivity.this, Lazypay.class);
 
-        intent.putExtra("email", email.getText().toString());
+        intent.putExtra("email", email);
 
-        intent.putExtra("mobile", mobile.getText().toString());
+        intent.putExtra("mobile", mobile);
 
-        intent.putExtra("amount", "1.00");
+        intent.putExtra("amount", amount);
 
         startActivityForResult(intent, 1);
     }

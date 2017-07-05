@@ -142,8 +142,9 @@ public class Lazypay extends AppCompatActivity {
                     boolean txnEligibility = jsonResponse.getBoolean("txnEligibility");
                     boolean userEligibility = jsonResponse.getBoolean("userEligibility");
                     String code = jsonResponse.getString("code");
+                    String eligibiltyCode = jsonResponse.getString("eligibilityResponseId");
 
-                    processEligibility(txnEligibility, userEligibility, code);
+                    processEligibility(txnEligibility, userEligibility, code, eligibiltyCode);
 
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -154,10 +155,29 @@ public class Lazypay extends AppCompatActivity {
         }, jsonObject, accessKey, signature.eligibilitySign(email, mobile, amountstr));
     }
 
-    private void processEligibility(boolean txn, boolean user, String code) {
+    private void processEligibility(boolean txn, boolean user, String code, String eligibilityCode) {
         if (txn && user) {
-            if (TextUtils.equals(code, "LP_ELIGIBLE") || TextUtils.equals(code, "LP_SIGNUP_AVAILABLE")) {
+            if (TextUtils.equals(code, "LP_ELIGIBLE")) {
+                Oauth oauth = new Oauth(getApplicationContext());
+
+                String token = oauth.getToken();
+
+                if (TextUtils.isEmpty(token)) {
+                    initPay();
+                }
+
+                else {
+                    processAutoDebit(token, eligibilityCode);
+                }
+
+            }
+
+            else if (TextUtils.equals(code, "LP_SIGNUP_AVAILABLE")) {
                 initPay();
+            }
+
+            else if (TextUtils.equals(code, "LP_USER_INELIGIBLE")) {
+                endActivity(LAZYPAY_FAILED);
             }
 
         }
@@ -189,9 +209,6 @@ public class Lazypay extends AppCompatActivity {
                     }
 
                     if (code.contains("OTP") || code.contains("AUTO_DEBIT")) {
-                        Oauth oauth = new Oauth(getApplicationContext());
-
-                        String token = oauth.getToken();
 
                         initSMSListener();
 
@@ -246,18 +263,39 @@ public class Lazypay extends AppCompatActivity {
         }
     }
 
-    private void processAutoDebit(String token, String merchantTxnid) {
+    private void processAutoDebit(String token, String eligibilitycode) {
 
-        JSONObject jsonObject = getAutoDebitJson();
+        String merchantTxnid = UUID.randomUUID().toString();
+
+        JSONObject jsonObject = getAutoDebitJson(merchantTxnid, eligibilitycode);
 
         Signature signature = new Signature();
 
         AutoDebit autoDebit = new AutoDebit();
 
+        showDialogue();
+
         autoDebit.start(new Callback() {
             @Override
             public void onResponse(String response) {
+                dismissDialogue();
+                try {
+                    JSONObject jsonResponse = new JSONObject(response);
+                    JSONObject jsonResponeData = jsonResponse.getJSONObject("responseData");
+                    JSONObject autodebitJson = jsonResponeData.getJSONObject("AUTO_DEBIT");
+                    String status = autodebitJson.getString("status");
 
+                    if (TextUtils.equals(status, "SUCCESS")) {
+                        endActivity(LAZYPAY_SUCCESS);
+                    }
+
+                    else {
+                        endActivity(LAZYPAY_FAILED);
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }, jsonObject, accessKey, signature.autoDebitsign(accessKey, merchantTxnid, amountstr), token);
 
@@ -365,15 +403,17 @@ public class Lazypay extends AppCompatActivity {
 
     }
 
-    private JSONObject getAutoDebitJson() {
+    private JSONObject getAutoDebitJson(String merchantTxnid, String eligibilityCode) {
         JSONObject jsonObject = new JSONObject();
 
         try {
+            jsonObject.put("eligibilityResposneId", eligibilityCode);
             jsonObject.put("userDetails", userDetails);
             jsonObject.put("amount", amount);
             jsonObject.put("address", address);
             jsonObject.put("source", R.string.app_name);
             jsonObject.put("productSkuDetails", productDetails);
+            jsonObject.put("merchantTxnId", merchantTxnid);
             jsonObject.put("redirectFlow", true);
             jsonObject.put("returnUrl", "https://test");
             jsonObject.put("notifyUrl", "https://test");
