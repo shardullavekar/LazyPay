@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.SmsMessage;
+import android.text.TextUtils;
 import android.util.Log;
 
 /**
@@ -32,6 +33,9 @@ public class ReadSms extends BroadcastReceiver {
                         msg_from = msgs[i].getOriginatingAddress();
                         String msgBody = msgs[i].getMessageBody();
                         String otp = getVerificationCode(msgBody);
+                        if (TextUtils.isEmpty(otp)) {
+                            return;
+                        }
                         smsListener.onOTPReceived(otp);
                     }
                 } catch(Exception e){
