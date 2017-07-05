@@ -1,5 +1,7 @@
 package lazypay.app;
 
+import android.text.TextUtils;
+
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +30,14 @@ public class Config {
         mac.init(secret);
         byte[] bytes = mac.doFinal(value.getBytes());
         return bytesToHex(bytes);
+    }
+
+    public final static boolean isValidEmail(CharSequence target) {
+        if (TextUtils.isEmpty(target)) {
+            return false;
+        } else {
+            return android.util.Patterns.EMAIL_ADDRESS.matcher(target).matches();
+        }
     }
 
     private final static char[] hexArray = "0123456789abcdef".toCharArray();

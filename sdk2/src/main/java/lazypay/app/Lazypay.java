@@ -1,5 +1,6 @@
 package lazypay.app;
 
+import android.app.ProgressDialog;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.http.SslError;
@@ -44,11 +45,16 @@ public class Lazypay extends AppCompatActivity {
 
     WebView webView;
 
+    private ProgressDialog dialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         app = null;
+
+        dialog = new ProgressDialog(Lazypay.this);
+
         try {
             app = getApplicationContext().getPackageManager()
                   .getApplicationInfo(getApplicationContext().getPackageName(), PackageManager.GET_META_DATA);
@@ -71,7 +77,7 @@ public class Lazypay extends AppCompatActivity {
             return;
         }
 
-        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(mobile) || TextUtils.isEmpty(amountstr)) {
+        if (!Config.isValidEmail(email) || TextUtils.isEmpty(mobile) || TextUtils.isEmpty(amountstr)) {
             Toast.makeText(getApplicationContext(), "Empty email,mobile or amount", Toast.LENGTH_LONG)
                     .show();
             return;
@@ -124,9 +130,12 @@ public class Lazypay extends AppCompatActivity {
 
         Signature signature = new Signature();
 
+        showDialogue();
+
         eligibility.check(new Callback() {
             @Override
             public void onResponse(String response) {
+                dismissDialogue();
                 JSONObject jsonResponse = null;
                 try {
                     jsonResponse = new JSONObject(response);
@@ -138,6 +147,7 @@ public class Lazypay extends AppCompatActivity {
 
                 } catch (JSONException e) {
                     e.printStackTrace();
+                    endActivity(LAZYPAY_FAILED);
                 }
 
             }
@@ -150,9 +160,6 @@ public class Lazypay extends AppCompatActivity {
                 initPay();
             }
 
-            else {
-
-            }
         }
     }
 
@@ -165,9 +172,12 @@ public class Lazypay extends AppCompatActivity {
 
         Signature signature = new Signature();
 
+        showDialogue();
+
         initiatePay.init(new Callback() {
             @Override
             public void onResponse(String response) {
+                dismissDialogue();
                 JSONObject jsonResponse = null;
                 try {
                     jsonResponse = new JSONObject(response);
@@ -186,14 +196,6 @@ public class Lazypay extends AppCompatActivity {
                         initSMSListener();
 
                         processOTP(jsonResponse.getString("txnRefNo"));
-
-//                        if (!TextUtils.isEmpty(token)) {
-//                              processAutoDebit(token, merchanttxnId);
-//                        }
-//                        else {
-//
-//                        }
-
                     }
 
                 } catch (JSONException e) {
@@ -223,9 +225,11 @@ public class Lazypay extends AppCompatActivity {
         OTPay otPay = new OTPay();
 
         try {
+            showDialogue();
             otPay.pay(new Callback() {
                 @Override
                 public void onResponse(String response) {
+                    dismissDialogue();
                     try {
                         JSONObject jsonResponse = new JSONObject(response);
                         String token = jsonResponse.getString("token");
@@ -380,6 +384,18 @@ public class Lazypay extends AppCompatActivity {
 
         return jsonObject;
     }
+
+    private void showDialogue() {
+        dialog.setMessage("Please wait..");
+        dialog.show();
+    }
+
+    private void dismissDialogue() {
+        if (dialog.isShowing()) {
+            dialog.dismiss();
+        }
+    }
+
 
     private void endActivity(int resultCode) {
         setResult(resultCode);
