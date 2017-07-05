@@ -33,7 +33,7 @@ public class Lazypay extends AppCompatActivity {
 
     String accessKey, email, mobile, amountstr;
 
-    JSONObject address, userDetails, amount;
+    JSONObject address, userDetails, amount, OtpPayment;
 
     JSONArray productDetails;
 
@@ -182,6 +182,7 @@ public class Lazypay extends AppCompatActivity {
                               processAutoDebit(token, merchanttxnId);
                         }
                         else {
+                            initSMSListener();
                             processOTP(jsonResponse.getString("txnRefNo"));
                         }
 
@@ -199,21 +200,10 @@ public class Lazypay extends AppCompatActivity {
     }
 
     private void processOTP(String txnRefnum) {
-        final JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("paymentMode", "OTP");
-            jsonObject.put("txnRefNo", txnRefnum);
-            ReadSms.bindListener(new SMSListener() {
-                @Override
-                public void onOTPReceived(String otp) {
-                    try {
-                        jsonObject.put("otp", otp);
-                        postOTPTxn(jsonObject);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+            OtpPayment.put("paymentMode", "OTP");
+            OtpPayment.put("txnRefNo", txnRefnum);
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -257,6 +247,23 @@ public class Lazypay extends AppCompatActivity {
 
             }
         }, jsonObject, accessKey, signature.autoDebitsign(accessKey, merchantTxnid, amountstr), token);
+
+    }
+
+    private void initSMSListener() {
+        OtpPayment = new JSONObject();
+
+        ReadSms.bindListener(new SMSListener() {
+            @Override
+            public void onOTPReceived(String otp) {
+                try {
+                    OtpPayment.put("otp", otp);
+                    postOTPTxn(OtpPayment);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
     }
 
