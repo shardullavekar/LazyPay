@@ -183,13 +183,16 @@ public class Lazypay extends AppCompatActivity {
 
                         String token = oauth.getToken();
 
-                        if (!TextUtils.isEmpty(token)) {
-                              processAutoDebit(token, merchanttxnId);
-                        }
-                        else {
-                            initSMSListener();
-                            processOTP(jsonResponse.getString("txnRefNo"));
-                        }
+                        initSMSListener();
+
+                        processOTP(jsonResponse.getString("txnRefNo"));
+
+//                        if (!TextUtils.isEmpty(token)) {
+//                              processAutoDebit(token, merchanttxnId);
+//                        }
+//                        else {
+//
+//                        }
 
                     }
 
@@ -228,6 +231,7 @@ public class Lazypay extends AppCompatActivity {
                         String token = jsonResponse.getString("token");
                         Oauth oauth = new Oauth(getApplicationContext());
                         oauth.storeToken(token);
+                        endActivity(LAZYPAY_SUCCESS);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
