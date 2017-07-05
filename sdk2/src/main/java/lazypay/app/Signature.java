@@ -53,5 +53,20 @@ public class Signature {
     }
 
 
+    public String otpsign(String accessKey, String txReferencenum) {
+        String hashbefore = "merchantAccessKey=" + accessKey + "&" + "txnRefNo=" + txReferencenum;
 
+        try {
+            return Config.hmacSha1(hashbefore);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return "";
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 }

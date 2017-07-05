@@ -21,6 +21,9 @@ import java.util.UUID;
 import lazypay.app.API.AutoDebit;
 import lazypay.app.API.Eligibility;
 import lazypay.app.API.Initiate;
+import lazypay.app.API.OTPay;
+import lazypay.app.SMS.ReadSms;
+import lazypay.app.SMS.SMSListener;
 import lazypay.app.storage.Oauth;
 
 public class Lazypay extends AppCompatActivity {
@@ -179,7 +182,7 @@ public class Lazypay extends AppCompatActivity {
                               processAutoDebit(token, merchanttxnId);
                         }
                         else {
-                            processOTP(merchanttxnId);
+                            processOTP(jsonResponse.getString("txnRefNo"));
                         }
 
                     }
@@ -196,10 +199,45 @@ public class Lazypay extends AppCompatActivity {
     }
 
     private void processOTP(String txnRefnum) {
-        JSONObject jsonObject = new JSONObject();
+        final JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("paymentMode", "OTP");
             jsonObject.put("txnRefNo", txnRefnum);
+            ReadSms.bindListener(new SMSListener() {
+                @Override
+                public void onOTPReceived(String otp) {
+                    try {
+                        jsonObject.put("otp", otp);
+                        postOTPTxn(jsonObject);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void postOTPTxn(final JSONObject jsonObject) {
+        Signature signature = new Signature();
+
+        OTPay otPay = new OTPay();
+
+        try {
+            otPay.pay(new Callback() {
+                @Override
+                public void onResponse(String response) {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        String token = jsonResponse.getString("token");
+                        Oauth oauth = new Oauth(getApplicationContext());
+                        oauth.storeToken(token);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }, jsonObject, accessKey, signature.otpsign(accessKey, jsonObject.getString("txnRefNo")));
         } catch (JSONException e) {
             e.printStackTrace();
         }
