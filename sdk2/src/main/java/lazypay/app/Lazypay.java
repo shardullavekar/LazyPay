@@ -2,11 +2,14 @@ package lazypay.app;
 
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -92,7 +95,16 @@ public class Lazypay extends AppCompatActivity {
 
         webView = (WebView) this.findViewById(R.id.lazypaywebview);
 
+        WebViewClient webViewClient = new WebViewClient(){
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.proceed();
+            }
+        };
+
         webView.setWebChromeClient(new WebChromeClient());
+
+        webView.setWebViewClient(webViewClient);
 
         webView.getSettings().setJavaScriptEnabled(true);
     }
@@ -126,11 +138,7 @@ public class Lazypay extends AppCompatActivity {
 
     private void processEligibility(boolean txn, boolean user, String code) {
         if (txn && user) {
-            if (TextUtils.equals(code, "LP_ELIGIBLE")) {
-
-            }
-
-            else if (TextUtils.equals(code, "LP_SIGNUP_AVAILABLE")) {
+            if (TextUtils.equals(code, "LP_ELIGIBLE") || TextUtils.equals(code, "LP_SIGNUP_AVAILABLE")) {
                 initPay();
             }
 
@@ -171,7 +179,7 @@ public class Lazypay extends AppCompatActivity {
                               processAutoDebit(token, merchanttxnId);
                         }
                         else {
-
+                            processOTP(merchanttxnId);
                         }
 
                     }

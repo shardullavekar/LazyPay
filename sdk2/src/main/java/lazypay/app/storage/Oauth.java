@@ -2,6 +2,7 @@ package lazypay.app.storage;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,12 +36,16 @@ public class Oauth {
     public String getToken() {
         String token = sharedPreferences.getString("token", null);
 
+        if (TextUtils.isEmpty(token)){
+            return null;
+        }
+
         try {
             JSONObject jsonObject = new JSONObject(token);
             return jsonObject.getString("access_token");
         } catch (JSONException e) {
             e.printStackTrace();
-            return "";
+            return token;
         }
 
     }
