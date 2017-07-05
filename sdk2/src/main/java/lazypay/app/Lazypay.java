@@ -257,6 +257,9 @@ public class Lazypay extends AppCompatActivity {
             @Override
             public void onOTPReceived(String otp) {
                 try {
+                    if (TextUtils.isEmpty(otp)) {
+                        return;
+                    }
                     OtpPayment.put("otp", otp);
                     postOTPTxn(OtpPayment);
                 } catch (JSONException e) {
@@ -368,4 +371,9 @@ public class Lazypay extends AppCompatActivity {
 
         return jsonObject;
     }
+
+    private void endActivity(int resultCode) {
+
+    }
+
 }

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.SmsMessage;
+import android.util.Log;
 
 /**
  * Created by shardullavekar on 03/07/17.
@@ -16,6 +17,7 @@ public class ReadSms extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.d("I am here", "ok");
         if(intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")){
             Bundle bundle = intent.getExtras();           //---get the SMS message passed in---
             SmsMessage[] msgs = null;
@@ -51,7 +53,15 @@ public class ReadSms extends BroadcastReceiver {
             int start = index;
             int length = 4;
             code = message.substring(start, start + length);
+        }
+
+        if(code.matches("\\d+(?:\\.\\d+)?"))
+        {
             return code;
+        }
+        else
+        {
+            code = null;
         }
 
         return code;

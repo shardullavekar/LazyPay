@@ -56,5 +56,11 @@ public class OTPay {
             }
             return response;
         }
+
+        @Override
+        protected void onPostExecute(String response) {
+            super.onPostExecute(response);
+            callback.onResponse(response);
+        }
     }
 }
