@@ -285,6 +285,7 @@ public class Lazypay extends AppCompatActivity {
             @Override
             public void onResponse(String response) {
                 dismissDialogue();
+                showDialogue();
                 otPay.pay(new Callback() {
                     @Override
                     public void onResponse(String response) {
@@ -326,6 +327,7 @@ public class Lazypay extends AppCompatActivity {
             @Override
             public void onResponse(String response) {
                 dismissDialogue();
+                showDialogue();
                 autoDebit.start(new Callback() {
                     @Override
                     public void onResponse(String response) {
