@@ -1,8 +1,13 @@
 package lazypay.testapp;
 
+import android.Manifest;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,6 +16,8 @@ import android.widget.Toast;
 import lazypay.app.Lazypay;
 
 public class MainActivity extends AppCompatActivity {
+    private final static int READ_SMS_PERMISSION = 11;
+
     EditText email, mobile;
     Button button;
     @Override
@@ -31,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        askforSMSPermission();
     }
 
     private void callLazyPay(String email, String mobile, String amount) {
@@ -64,4 +72,28 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void askforSMSPermission() {
+        if (Build.VERSION.SDK_INT < 23) {
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.READ_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                    Manifest.permission.READ_SMS)) {
+                Toast.makeText(getApplicationContext(), "SMS Permission for enable auto OTP reading", Toast.LENGTH_LONG)
+                        .show();
+
+            } else {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.READ_SMS},
+                        READ_SMS_PERMISSION);
+            }
+        }
+
+    }
+
 }

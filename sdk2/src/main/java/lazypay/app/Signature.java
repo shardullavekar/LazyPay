@@ -1,72 +1,88 @@
 package lazypay.app;
 
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import android.os.AsyncTask;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import lazypay.app.REST.Post;
 
 /**
  * Created by shardullavekar on 04/07/17.
  */
 
 public class Signature {
+    Callback callback;
 
-    public Signature() {
-
+    public Signature(Callback callback) {
+        this.callback = callback;
     }
 
-    public String eligibilitySign(String email, String mobile, String amount) {
-        String hashbefore = mobile+email+amount + "INR";
+    public void eligibilitySign(String email, String mobile, String amount, String url) {
+        JSONObject jsonObject = new JSONObject();
         try {
-            return Config.hmacSha1(hashbefore);
-        } catch (UnsupportedEncodingException e) {
+            jsonObject.put("type", "elligibility");
+            jsonObject.put("email", email);
+            jsonObject.put("amount", amount);
+            jsonObject.put("mobile", mobile);
+            jsonObject.put("url", url);
+        } catch (JSONException e) {
             e.printStackTrace();
-            return "";
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return "";
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
-
-    public String initPaysign(String accessKey, String txnId, String amount) {
-        String hashbefore = "merchantAccessKey=" + accessKey + "&" + "transactionId=" + txnId + "&"
-                + "amount=" + amount;
-        try {
-            return Config.hmacSha1(hashbefore);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return "";
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return "";
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-            return "";
         }
 
+        SignatureAsych signatureAsych = new SignatureAsych();
+        signatureAsych.execute(new JSONObject[]{jsonObject});
     }
 
-    public String autoDebitsign(String accessKey, String txnId, String amount) {
-        return initPaysign(accessKey, txnId, amount);
-    }
-
-
-    public String otpsign(String accessKey, String txReferencenum) {
-        String hashbefore = "merchantAccessKey=" + accessKey + "&" + "txnRefNo=" + txReferencenum;
-
+    public void initPaysign(String txnId, String amount, String url) {
+        JSONObject jsonObject = new JSONObject();
         try {
-            return Config.hmacSha1(hashbefore);
-        } catch (UnsupportedEncodingException e) {
+            jsonObject.put("type", "initpay");
+            jsonObject.put("txnid", txnId);
+            jsonObject.put("amount", amount);
+            jsonObject.put("url", url);
+        } catch (JSONException e) {
             e.printStackTrace();
-            return "";
-        } catch (NoSuchAlgorithmException e) {
+        }
+
+        SignatureAsych signatureAsych = new SignatureAsych();
+        signatureAsych.execute(new JSONObject[]{jsonObject});
+
+    }
+
+    public void autoDebitsign(String txnId, String amount, String url) {
+        initPaysign(txnId, amount, url);
+    }
+
+
+    public void otpsign(String txReferencenum, String url) {
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("type", "otpsign");
+            jsonObject.put("txnref", txReferencenum);
+            jsonObject.put("url", url);
+        } catch (JSONException e) {
             e.printStackTrace();
-            return "";
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-            return "";
+        }
+
+        SignatureAsych signatureAsych = new SignatureAsych();
+        signatureAsych.execute(new JSONObject[]{jsonObject});
+
+    }
+
+    private class SignatureAsych extends AsyncTask<JSONObject, Void, String> {
+
+        @Override
+        protected String doInBackground(JSONObject... params) {
+            JSONObject jsonObject = params[0];
+            Post post = new Post();
+            return post.formPost(jsonObject);
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            callback.onResponse(s);
         }
     }
 }

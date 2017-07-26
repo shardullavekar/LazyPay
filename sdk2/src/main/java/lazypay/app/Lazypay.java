@@ -1,16 +1,21 @@
 package lazypay.app;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.view.View;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -33,11 +38,17 @@ public class Lazypay extends AppCompatActivity {
 
     public static final int LAZYPAY_FAILED = 20;
 
+    private ProgressDialog dialog;
+
+    private EditText smsEdit;
+
+    private Button paybutton;
+
     ApplicationInfo app;
 
     Bundle bundle;
 
-    String accessKey, email, mobile, amountstr;
+    String accessKey, email, mobile, amountstr, signatureUrl;
 
     JSONObject address, userDetails, amount, OtpPayment;
 
@@ -45,7 +56,6 @@ public class Lazypay extends AppCompatActivity {
 
     WebView webView;
 
-    private ProgressDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +75,8 @@ public class Lazypay extends AppCompatActivity {
 
         accessKey = bundle.getString(Config.ACCESS_KEY_NAME);
 
+        signatureUrl = bundle.getString(Config.SIGNATURE_URL);
+
         email = getIntent().getStringExtra("email");
 
         mobile = getIntent().getStringExtra("mobile");
@@ -73,6 +85,12 @@ public class Lazypay extends AppCompatActivity {
 
         if (TextUtils.isEmpty(accessKey)) {
             Toast.makeText(getApplicationContext(), "Invalid AccessKey", Toast.LENGTH_LONG)
+                    .show();
+            return;
+        }
+
+        if (TextUtils.isEmpty(signatureUrl)) {
+            Toast.makeText(getApplicationContext(), "Invalid Signature URL", Toast.LENGTH_LONG)
                     .show();
             return;
         }
@@ -109,6 +127,10 @@ public class Lazypay extends AppCompatActivity {
 
         webView = (WebView) this.findViewById(R.id.lazypaywebview);
 
+        smsEdit = (EditText) this.findViewById(R.id.smseditbox);
+
+        paybutton = (Button) this.findViewById(R.id.paybutton);
+
         WebViewClient webViewClient = new WebViewClient(){
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
@@ -124,35 +146,41 @@ public class Lazypay extends AppCompatActivity {
     }
 
     private void checkEligibility() {
-        Eligibility eligibility = new Eligibility();
+        final Eligibility eligibility = new Eligibility();
 
-        JSONObject jsonObject = getEligibilityJson();
+        final JSONObject jsonObject = getEligibilityJson();
 
-        Signature signature = new Signature();
+        Signature signature = new Signature(new Callback() {
+            @Override
+            public void onResponse(String response) {
+                eligibility.check(new Callback() {
+                    @Override
+                    public void onResponse(String response) {
+                        dismissDialogue();
+                        JSONObject jsonResponse = null;
+                        try {
+                            jsonResponse = new JSONObject(response);
+                            boolean txnEligibility = jsonResponse.getBoolean("txnEligibility");
+                            boolean userEligibility = jsonResponse.getBoolean("userEligibility");
+                            String code = jsonResponse.getString("code");
+                            String eligibiltyCode = jsonResponse.getString("eligibilityResponseId");
+
+                            processEligibility(txnEligibility, userEligibility, code, eligibiltyCode);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            endActivity(LAZYPAY_FAILED);
+                        }
+
+                    }
+                }, jsonObject, accessKey, response);
+            }
+        });
+
+        signature.eligibilitySign(email, mobile, amountstr, signatureUrl);
 
         showDialogue();
 
-        eligibility.check(new Callback() {
-            @Override
-            public void onResponse(String response) {
-                dismissDialogue();
-                JSONObject jsonResponse = null;
-                try {
-                    jsonResponse = new JSONObject(response);
-                    boolean txnEligibility = jsonResponse.getBoolean("txnEligibility");
-                    boolean userEligibility = jsonResponse.getBoolean("userEligibility");
-                    String code = jsonResponse.getString("code");
-                    String eligibiltyCode = jsonResponse.getString("eligibilityResponseId");
-
-                    processEligibility(txnEligibility, userEligibility, code, eligibiltyCode);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    endActivity(LAZYPAY_FAILED);
-                }
-
-            }
-        }, jsonObject, accessKey, signature.eligibilitySign(email, mobile, amountstr));
     }
 
     private void processEligibility(boolean txn, boolean user, String code, String eligibilityCode) {
@@ -184,42 +212,51 @@ public class Lazypay extends AppCompatActivity {
     }
 
     private void initPay() {
-        Initiate initiatePay = new Initiate();
+        final Initiate initiatePay = new Initiate();
 
         final String merchanttxnId = UUID.randomUUID().toString();
 
-        JSONObject jsonObject = getInitPayJson(merchanttxnId);
+        final JSONObject jsonObject = getInitPayJson(merchanttxnId);
 
-        Signature signature = new Signature();
+        Signature signature = new Signature(new Callback() {
+            @Override
+            public void onResponse(String signature) {
+                dismissDialogue();
+                initiatePay.init(new Callback() {
+                    @Override
+                    public void onResponse(String response) {
+                        dismissDialogue();
+                        JSONObject jsonResponse = null;
+                        try {
+                            jsonResponse = new JSONObject(response);
+                            String code = jsonResponse.getJSONArray("paymentModes").toString();
+
+                            if (code.contains("CREDIT_CARD")) {
+                                String weburl = jsonResponse.getString("checkoutPageUrl");
+                                processCheckout(weburl);
+                            }
+
+                            if (code.contains("OTP") || code.contains("AUTO_DEBIT")) {
+
+                                initSMSListener();
+
+                                processOTP(jsonResponse.getString("txnRefNo"));
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, jsonObject, accessKey, signature);
+                showDialogue();
+            }
+        });
+
+        signature.initPaysign(merchanttxnId, amountstr, signatureUrl);
 
         showDialogue();
 
-        initiatePay.init(new Callback() {
-            @Override
-            public void onResponse(String response) {
-                dismissDialogue();
-                JSONObject jsonResponse = null;
-                try {
-                    jsonResponse = new JSONObject(response);
-                    String code = jsonResponse.getJSONArray("paymentModes").toString();
 
-                    if (code.contains("CREDIT_CARD")) {
-                        String weburl = jsonResponse.getString("checkoutPageUrl");
-                        processCheckout(weburl);
-                    }
-
-                    if (code.contains("OTP") || code.contains("AUTO_DEBIT")) {
-
-                        initSMSListener();
-
-                        processOTP(jsonResponse.getString("txnRefNo"));
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, jsonObject, accessKey, signature.initPaysign(accessKey, merchanttxnId, amountstr));
     }
 
     private void processCheckout(String url) {
@@ -231,73 +268,93 @@ public class Lazypay extends AppCompatActivity {
             OtpPayment.put("paymentMode", "OTP");
             OtpPayment.put("txnRefNo", txnRefnum);
 
+            if (ContextCompat.checkSelfPermission(Lazypay.this,
+                    Manifest.permission.READ_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                showSMSeditbox();
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
     private void postOTPTxn(final JSONObject jsonObject) {
-        Signature signature = new Signature();
-
-        OTPay otPay = new OTPay();
-
-        try {
-            showDialogue();
-            otPay.pay(new Callback() {
-                @Override
-                public void onResponse(String response) {
-                    dismissDialogue();
-                    try {
-                        JSONObject jsonResponse = new JSONObject(response);
-                        String token = jsonResponse.getString("token");
-                        Oauth oauth = new Oauth(getApplicationContext());
-                        oauth.storeToken(token);
-                        endActivity(LAZYPAY_SUCCESS);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }, jsonObject, accessKey, signature.otpsign(accessKey, jsonObject.getString("txnRefNo")));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void processAutoDebit(String token, String eligibilitycode) {
-
-        String merchantTxnid = UUID.randomUUID().toString();
-
-        JSONObject jsonObject = getAutoDebitJson(merchantTxnid, eligibilitycode);
-
-        Signature signature = new Signature();
-
-        AutoDebit autoDebit = new AutoDebit();
-
-        showDialogue();
-
-        autoDebit.start(new Callback() {
+        final OTPay otPay = new OTPay();
+        Signature signature = new Signature(new Callback() {
             @Override
             public void onResponse(String response) {
                 dismissDialogue();
-                try {
-                    JSONObject jsonResponse = new JSONObject(response);
-                    JSONObject jsonResponeData = jsonResponse.getJSONObject("responseData");
-                    JSONObject autodebitJson = jsonResponeData.getJSONObject("AUTO_DEBIT");
-                    String status = autodebitJson.getString("status");
+                otPay.pay(new Callback() {
+                    @Override
+                    public void onResponse(String response) {
+                        dismissDialogue();
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            String token = jsonResponse.getString("token");
+                            Oauth oauth = new Oauth(getApplicationContext());
+                            oauth.storeToken(token);
+                            endActivity(LAZYPAY_SUCCESS);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
 
-                    if (TextUtils.equals(status, "SUCCESS")) {
-                        endActivity(LAZYPAY_SUCCESS);
                     }
+                }, jsonObject, accessKey, response);
+                showDialogue();
 
-                    else {
-                        endActivity(LAZYPAY_FAILED);
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
             }
-        }, jsonObject, accessKey, signature.autoDebitsign(accessKey, merchantTxnid, amountstr), token);
+        });
+
+        try {
+            signature.otpsign(OtpPayment.getString("txnRefNo"), signatureUrl);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        showDialogue();
+    }
+
+    private void processAutoDebit(final String token, String eligibilitycode) {
+
+        final String merchantTxnid = UUID.randomUUID().toString();
+
+        final JSONObject jsonObject = getAutoDebitJson(merchantTxnid, eligibilitycode);
+
+        final AutoDebit autoDebit = new AutoDebit();
+
+        Signature signature = new Signature(new Callback() {
+            @Override
+            public void onResponse(String response) {
+                dismissDialogue();
+                autoDebit.start(new Callback() {
+                    @Override
+                    public void onResponse(String response) {
+                        dismissDialogue();
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            JSONObject jsonResponeData = jsonResponse.getJSONObject("responseData");
+                            JSONObject autodebitJson = jsonResponeData.getJSONObject("AUTO_DEBIT");
+                            String status = autodebitJson.getString("status");
+
+                            if (TextUtils.equals(status, "SUCCESS")) {
+                                endActivity(LAZYPAY_SUCCESS);
+                            }
+
+                            else {
+                                endActivity(LAZYPAY_FAILED);
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, jsonObject, accessKey, response, token);
+
+            }
+        });
+
+        signature.autoDebitsign(merchantTxnid, amountstr, signatureUrl);
+        showDialogue();
 
     }
 
@@ -423,6 +480,23 @@ public class Lazypay extends AppCompatActivity {
         }
 
         return jsonObject;
+    }
+
+    private void showSMSeditbox() {
+        smsEdit.setVisibility(View.VISIBLE);
+        paybutton.setVisibility(View.VISIBLE);
+
+        paybutton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    OtpPayment.put("otp", smsEdit.getText().toString());
+                    postOTPTxn(OtpPayment);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void showDialogue() {

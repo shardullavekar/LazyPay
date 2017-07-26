@@ -11,4 +11,23 @@
         android:layout_height="match_parent"
         android:layout_centerInParent="true"></WebView>
 
+    <EditText
+        android:id="@+id/smseditbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_margin="20dp"
+        android:visibility="gone"
+        android:inputType="number"
+        android:hint="Enter SMS OTP"/>
+
+    <Button
+        android:id="@+id/paybutton"
+        android:layout_below="@+id/smseditbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_margin="20dp"
+        android:text="Pay"/>
+
 </RelativeLayout>

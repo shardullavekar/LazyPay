@@ -14,7 +14,8 @@
 
         <meta-data android:name="in.sdk.lazypay"
                    android:value="M9OZT7LFHPCK91UDVJC8"/>
-
+        <meta-data android:name="in.sdk.signature"
+                   android:value="https://frozen-reef-67391.herokuapp.com/shardul1.php" />
     </application>
 
 </manifest>
